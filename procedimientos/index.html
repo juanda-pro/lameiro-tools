@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#70442a" />
+    <title>Procedimientos de limpieza y desinfección · Grupo Lameiro</title>
+    <link rel="stylesheet" href="estilo.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <p class="brand">GRUPO LAMEIRO · O CACHO DO JOSÉ</p>
+        <h1>Procedimientos de limpieza y desinfección</h1>
+        <p class="subtitle">Cómo se limpia cada equipo. Toca uno para ver los pasos.</p>
+      </header>
+      <main>
+        <fieldset class="area-selector">
+          <legend>Área</legend>
+          <div class="chips">
+            <label class="chip calientes"><input id="area-calientes" type="checkbox" value="calientes" /><span>Calientes</span></label>
+            <label class="chip frios"><input id="area-frios" type="checkbox" value="frios" /><span>Fríos</span></label>
+          </div>
+        </fieldset>
+        <div id="procedimientos" aria-live="polite"></div>
+      </main>
+      <footer>Grupo Lameiro · Versión 1 · octubre 2026</footer>
+    </div>
+    <script src="datos.js"></script>
+    <script>
+      (function () {
+        "use strict";
+        var areas = {
+          calientes: { nombre: "CALIENTES", input: document.getElementById("area-calientes") },
+          frios: { nombre: "FRÍOS", input: document.getElementById("area-frios") }
+        };
+        var container = document.getElementById("procedimientos");
+        var requested = new URLSearchParams(window.location.search).get("area");
+        if (requested === "calientes" || requested === "frios") {
+          areas[requested].input.checked = true;
+        } else {
+          areas.calientes.input.checked = true;
+          areas.frios.input.checked = true;
+        }
+
+        function card(item) {
+          var details = document.createElement("details");
+          details.className = "procedure-card";
+          details.id = item.id;
+          var summary = document.createElement("summary");
+          summary.append(document.createTextNode(item.nombre));
+          var frequency = document.createElement("span");
+          frequency.className = "frequency";
+          frequency.textContent = item.frecuencia;
+          summary.appendChild(frequency);
+          details.appendChild(summary);
+
+          var body = document.createElement("div");
+          body.className = "card-body";
+          var steps = document.createElement("ol");
+          item.pasos.forEach(function (paso) {
+            var li = document.createElement("li");
+            li.textContent = paso;
+            steps.appendChild(li);
+          });
+          body.appendChild(steps);
+          if (item.seguridad) {
+            var safety = document.createElement("p");
+            safety.className = "safety";
+            var strong = document.createElement("strong");
+            strong.textContent = "Seguridad: ";
+            safety.append(strong, document.createTextNode(item.seguridad));
+            body.appendChild(safety);
+          }
+          if (item.video) {
+            var link = document.createElement("a");
+            link.className = "video";
+            link.href = item.video;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "Ver vídeo";
+            body.appendChild(link);
+          } else {
+            var button = document.createElement("button");
+            button.className = "video";
+            button.type = "button";
+            button.disabled = true;
+            button.textContent = "Vídeo próximamente";
+            body.appendChild(button);
+          }
+          details.appendChild(body);
+          return details;
+        }
+
+        function render() {
+          container.replaceChildren();
+          var selected = Object.keys(areas).filter(function (key) { return areas[key].input.checked; });
+          if (!selected.length) {
+            var empty = document.createElement("p");
+            empty.className = "empty";
+            empty.textContent = "Marca un área para ver sus procedimientos.";
+            container.appendChild(empty);
+          }
+          selected.forEach(function (key) {
+            var heading = document.createElement("h2");
+            heading.className = "area-title " + key;
+            heading.textContent = areas[key].nombre;
+            container.appendChild(heading);
+            window.PROCEDIMIENTOS.filter(function (item) { return item.area === key; }).forEach(function (item) {
+              container.appendChild(card(item));
+            });
+          });
+        }
+
+        function updateUrl() {
+          var calientes = areas.calientes.input.checked;
+          var frios = areas.frios.input.checked;
+          var query = calientes && !frios ? "?area=calientes" : frios && !calientes ? "?area=frios" : "";
+          history.replaceState(null, "", window.location.pathname + query + window.location.hash);
+        }
+
+        function openHash() {
+          if (!window.location.hash) return;
+          var id = decodeURIComponent(window.location.hash.slice(1));
+          var item = window.PROCEDIMIENTOS.find(function (candidate) { return candidate.id === id; });
+          if (!item) return;
+          if (!areas[item.area].input.checked) {
+            areas[item.area].input.checked = true;
+            render();
+            updateUrl();
+          }
+          var target = document.getElementById(id);
+          if (target) {
+            target.open = true;
+            setTimeout(function () {
+              target.scrollIntoView({ behavior: "auto", block: "start" });
+            }, 0);
+          }
+        }
+
+        Object.keys(areas).forEach(function (key) {
+          areas[key].input.addEventListener("change", function () { render(); updateUrl(); });
+        });
+        window.addEventListener("hashchange", openHash);
+        render();
+        openHash();
+      })();
+    </script>
+  </body>
+</html>
